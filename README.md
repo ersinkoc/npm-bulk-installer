@@ -2,10 +2,6 @@
 
 🚀 Cross-platform scripts to automatically find and install npm packages across multiple projects in a directory tree.
 
-**Author:** Ersin KOÇ  
-**Repository:** [github.com/ersinkoc/npm-bulk-installer](https://github.com/ersinkoc/npm-bulk-installer)  
-**Created:** 2025-08-17
-
 ## Features
 
 - 🔍 **Recursive Search**: Automatically finds all `package.json` files in subdirectories
@@ -227,11 +223,6 @@ Contributions are welcome! Feel free to:
 
 MIT License - See [LICENSE](LICENSE) file for details
 
-## 👨‍💻 Author
-
-**Ersin KOÇ**  
-GitHub: [@ersinkoc](https://github.com/ersinkoc)
-
 ## 🌟 Star History
 
 If you find this tool useful, please consider giving it a star ⭐
@@ -241,10 +232,3 @@ If you find this tool useful, please consider giving it a star ⭐
 - Built for developers who manage multiple Node.js projects
 - Inspired by the need to streamline dependency management
 - Special thanks to the open source community
-
-## 📊 Project Statistics
-
-- **Created**: 2025-08-17
-- **Languages**: PowerShell, Bash, Batch
-- **Platform Support**: Windows, Linux, macOS
-- **License**: MIT
