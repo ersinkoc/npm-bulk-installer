@@ -2,74 +2,86 @@
 REM NPM Bulk Installer - Windows Batch Version
 REM Author: Ersin KOC
 REM Date: 2025-08-17
-REM Description: Finds all package.json files and runs npm install
 
 setlocal enabledelayedexpansion
 
-REM Default values
-if "%~1"=="" (
-    set "START_PATH=%CD%"
-) else (
-    set "START_PATH=%~1"
-)
-
-if "%~2"=="" (
-    set "LOG_FILE=npm-install-log.txt"
-) else (
-    set "LOG_FILE=%~2"
-)
-
-set "LOG_PATH=%START_PATH%\%LOG_FILE%"
-
-REM Initialize log file
-echo NPM Installation Log - %date% %time% > "%LOG_PATH%"
-
-REM Welcome message
 echo.
 echo ========================================
 echo     NPM Bulk Installer (Batch)
 echo ========================================
-echo Start directory: %START_PATH%
-echo Log file: %LOG_PATH%
+echo.
 
-REM Check if npm is installed
-npm --version >nul 2>&1
-if errorlevel 1 (
-    echo npm is not installed or not in PATH!
+REM Check if npm exists
+where npm >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: npm is not installed or not in PATH!
+    echo Please install Node.js first.
+    pause
     exit /b 1
 )
 
-for /f "delims=" %%i in ('npm --version') do set NPM_VERSION=%%i
+REM Get npm version
+for /f "tokens=*" %%i in ('npm --version') do set NPM_VERSION=%%i
 echo npm version: %NPM_VERSION%
+echo.
 
-REM Find and count package.json files
+REM Set working directory
+if "%~1"=="" (
+    set "WORK_DIR=%CD%"
+) else (
+    set "WORK_DIR=%~1"
+)
+
+echo Working directory: %WORK_DIR%
 echo.
 echo Searching for package.json files...
+echo ========================================
 
-set COUNT=0
-set SUCCESS_COUNT=0
-set ERROR_COUNT=0
+REM Create temp file for storing paths
+set "TEMP_FILE=%TEMP%\npm_dirs_%RANDOM%.txt"
+type nul > "%TEMP_FILE%"
 
-REM First pass: count files
-for /r "%START_PATH%" %%f in (package.json) do (
-    echo %%~dpf | find /i "node_modules" >nul
-    if errorlevel 1 (
-        set /a COUNT+=1
+REM Find all package.json files and store their directories
+set count=0
+for /r "%WORK_DIR%" %%f in (package.json) do (
+    set "filepath=%%f"
+    set "dirpath=%%~dpf"
+    
+    REM Check if this is actually a package.json file (not a directory)
+    if exist "%%f" (
+        REM Check if path contains node_modules
+        echo !filepath! | findstr /i "node_modules" >nul 2>&1
+        if errorlevel 1 (
+            set /a count+=1
+            echo !dirpath! >> "%TEMP_FILE%"
+            
+            REM Display found package.json
+            set "relpath=!dirpath:%WORK_DIR%\=!"
+            if "!relpath!"=="!dirpath!" set "relpath=."
+            echo   [!count!] Found: !relpath!package.json
+        )
     )
 )
 
-if %COUNT%==0 (
-    echo No package.json files found!
+echo ========================================
+
+if %count%==0 (
+    echo No package.json files found ^(excluding node_modules^)
+    del "%TEMP_FILE%" >nul 2>&1
+    pause
     exit /b 1
 )
 
-echo Found %COUNT% package.json files
+echo.
+echo Total: %count% package.json file^(s^) found
+echo.
 
 REM Ask for confirmation
-echo.
-set /p CONFIRM=Proceed with npm install? (Y/N): 
-if /i not "%CONFIRM%"=="Y" (
+set /p answer=Do you want to run npm install in these directories? (Y/N): 
+if /i not "%answer%"=="Y" (
     echo Operation cancelled.
+    del "%TEMP_FILE%" >nul 2>&1
+    pause
     exit /b 0
 )
 
@@ -77,65 +89,65 @@ echo.
 echo Starting npm install operations...
 echo ========================================
 
-REM Second pass: process files
-set CURRENT=0
-for /r "%START_PATH%" %%f in (package.json) do (
-    echo %%~dpf | find /i "node_modules" >nul
-    if errorlevel 1 (
-        set /a CURRENT+=1
-        
-        REM Get relative path
-        set "FULL_PATH=%%~dpf"
-        set "REL_PATH=!FULL_PATH:%START_PATH%\=!"
-        if "!REL_PATH!"=="!FULL_PATH!" set "REL_PATH=."
-        
-        echo.
-        echo [!CURRENT!/%COUNT%] !REL_PATH!
-        
-        REM Log to file
-        echo. >> "%LOG_PATH%"
-        echo ---------------------------------------- >> "%LOG_PATH%"
-        echo Directory: !REL_PATH! >> "%LOG_PATH%"
-        echo Time: %time% >> "%LOG_PATH%"
-        
-        REM Change to directory
-        pushd "%%~dpf"
-        
+REM Process each directory from temp file
+set current=0
+set success=0
+set failed=0
+
+for /f "usebackq delims=" %%d in ("%TEMP_FILE%") do (
+    set /a current+=1
+    set "dirpath=%%d"
+    
+    REM Get relative path for display
+    set "relpath=!dirpath:%WORK_DIR%\=!"
+    if "!relpath!"=="!dirpath!" set "relpath=."
+    
+    echo.
+    echo [!current!/%count%] Processing: !relpath!
+    
+    REM Change to directory
+    cd /d "!dirpath!" 2>nul
+    if !errorlevel! neq 0 (
+        echo   [ERROR] Cannot access directory
+        set /a failed+=1
+    ) else (
         echo   Running npm install...
         
         REM Run npm install
-        npm install >nul 2>&1
-        if errorlevel 1 (
-            set /a ERROR_COUNT+=1
-            echo   [X] Failed!
-            echo Status: FAILED >> "%LOG_PATH%"
-        ) else (
-            set /a SUCCESS_COUNT+=1
-            echo   [OK] Success!
-            echo Status: SUCCESS >> "%LOG_PATH%"
-        )
+        call npm install
         
-        popd
+        if !errorlevel! equ 0 (
+            echo   [SUCCESS] npm install completed
+            set /a success+=1
+        ) else (
+            echo   [FAILED] npm install failed with error code: !errorlevel!
+            set /a failed+=1
+        )
     )
 )
 
-REM Summary
+REM Clean up temp file
+del "%TEMP_FILE%" >nul 2>&1
+
+REM Return to original directory
+cd /d "%WORK_DIR%"
+
+REM Show summary
 echo.
 echo ========================================
-echo          SUMMARY
+echo              SUMMARY
 echo ========================================
-echo Total packages: %COUNT%
-echo Successful: %SUCCESS_COUNT%
-echo Failed: %ERROR_COUNT%
-
+echo Total directories: %count%
+echo Successful: %success%
+echo Failed: %failed%
+echo ========================================
 echo.
-echo Log file saved to: %LOG_PATH%
 
-REM Exit code
-if %ERROR_COUNT% GTR 0 (
-    exit /b 1
+if %failed% gtr 0 (
+    echo Warning: Some installations failed!
 ) else (
-    echo.
-    echo All packages installed successfully!
-    exit /b 0
+    echo All installations completed successfully!
 )
+
+echo.
+pause
