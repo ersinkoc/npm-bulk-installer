@@ -1,0 +1,34 @@
+{
+  "name": "npm-bulk-installer",
+  "version": "1.0.0",
+  "description": "Cross-platform scripts to bulk install npm packages across multiple projects",
+  "author": "Ersin KOÇ <ersinkoc@github>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ersinkoc/npm-bulk-installer.git"
+  },
+  "keywords": [
+    "npm",
+    "bulk",
+    "installer",
+    "monorepo",
+    "automation",
+    "devops",
+    "package-manager",
+    "cross-platform"
+  ],
+  "scripts": {
+    "install:ps": "powershell -ExecutionPolicy Bypass -File npm-installer.ps1",
+    "install:bat": "npm-installer.bat",
+    "install:sh": "bash npm-installer.sh"
+  },
+  "bugs": {
+    "url": "https://github.com/ersinkoc/npm-bulk-installer/issues"
+  },
+  "homepage": "https://github.com/ersinkoc/npm-bulk-installer#readme",
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  }
+}
